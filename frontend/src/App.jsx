@@ -4,18 +4,16 @@ import AssessmentForm from './components/AssessmentForm';
 import './App.css';
 
 function App() {
-  const [teamName, setTeamName] = useState('');
   const [projectNumber, setProjectNumber] = useState('');
-  const [projectName, setProjectName] = useState('');
+  const [projectTitle, setProjectTitle] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [scanned, setScanned] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0);
 
   const handleQRScan = (data) => {
-    // Parse QR code data: "Project No: MP25052\nTitle: HYDROLIFT"
     const lines = data.split('\n');
     let projNo = '';
     let projTitle = '';
-
     lines.forEach(line => {
       if (line.startsWith('Project No:')) {
         projNo = line.replace('Project No:', '').trim();
@@ -23,21 +21,23 @@ function App() {
         projTitle = line.replace('Title:', '').trim();
       }
     });
-
     if (projNo) {
       setProjectNumber(projNo);
-      setTeamName(projNo); // Using project number as team identifier
-      setProjectName(projTitle);
+      setProjectTitle(projTitle);
       setScanned(true);
       setShowScanner(false);
     }
   };
 
   const handleReset = () => {
-    setTeamName('');
     setProjectNumber('');
-    setProjectName('');
+    setProjectTitle('');
     setScanned(false);
+  };
+
+  const openScanner = () => {
+    setScannerKey((k) => k + 1);
+    setShowScanner(true);
   };
 
   return (
@@ -57,59 +57,46 @@ function App() {
 
         {showScanner ? (
           <QRScanner 
+            key={scannerKey}
             onScan={handleQRScan} 
             onClose={() => setShowScanner(false)}
           />
         ) : (
           <>
             <div className="card team-info-card">
-              <div className="grid-2">
-                <div>
-                  <label htmlFor="team-name" className="label">Team Name</label>
-                  <input
-                    type="text"
-                    id="team-name"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    placeholder="Enter team name or scan QR code"
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="project-number" className="label">Project Number</label>
-                  <input
-                    type="text"
-                    id="project-number"
-                    value={projectNumber}
-                    onChange={(e) => setProjectNumber(e.target.value)}
-                    placeholder="Enter project number or scan QR code"
-                    className="input"
-                  />
-                </div>
+              <div>
+                <label htmlFor="project-number" className="label">Project Number</label>
+                <input
+                  type="text"
+                  id="project-number"
+                  value={projectNumber}
+                  onChange={(e) => setProjectNumber(e.target.value)}
+                  placeholder="Scan QR or enter project number"
+                  className="input"
+                />
               </div>
-              {projectName && (
-                <div className="mt-4">
-                  <label htmlFor="project-name" className="label">Project Name</label>
-                  <input
-                    type="text"
-                    id="project-name"
-                    value={projectName}
-                    readOnly
-                    className="input"
-                    style={{ background: '#e8f4ff' }}
-                  />
-                </div>
-              )}
+              <div className="mt-4">
+                <label htmlFor="project-title" className="label">Project Title</label>
+                <input
+                  type="text"
+                  id="project-title"
+                  value={projectTitle}
+                  onChange={(e) => setProjectTitle(e.target.value)}
+                  placeholder="Scan QR or enter project title"
+                  className="input"
+                  style={projectTitle ? { background: '#e8f4ff' } : {}}
+                />
+              </div>
               <button 
                 className="qr-button"
-                onClick={() => setShowScanner(true)}
+                onClick={openScanner}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                 </svg>
                 {scanned ? 'Scan Again' : 'Scan QR Code'}
               </button>
-              {scanned && (
+              {(projectNumber || projectTitle) && (
                 <button 
                   className="reset-button"
                   onClick={handleReset}
@@ -120,9 +107,9 @@ function App() {
             </div>
 
             <AssessmentForm
-              teamName={teamName}
+              teamName={projectNumber}
               projectNumber={projectNumber}
-              projectName={projectName}
+              projectName={projectTitle}
               onReset={handleReset}
             />
           </>
