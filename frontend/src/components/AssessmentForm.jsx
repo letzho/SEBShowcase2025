@@ -62,8 +62,8 @@ function AssessmentForm({ teamName, projectNumber, projectName, onReset }) {
       });
 
       if (response.data.success) {
-        showToast('Assessment submitted successfully!');
-        // Reset form
+        showToast('Assessment submitted successfully! Scan again for next project.');
+        // Clear only form fields; keep project so Scan Again / Reset stay usable
         setAssessorName('');
         setRatings({
           persuading: 0,
@@ -72,7 +72,7 @@ function AssessmentForm({ teamName, projectNumber, projectName, onReset }) {
         });
         setPassword('');
         setShowPasswordModal(false);
-        onReset();
+        // Do NOT call onReset() so project fields stay and Scan Again / Reset keep working on mobile
       }
     } catch (error) {
       const message = error.response?.data?.error || 'Failed to submit assessment';

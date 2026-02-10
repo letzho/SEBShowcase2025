@@ -212,9 +212,17 @@
   transform: translateY(0);
 }
 
+@media (max-width: 640px) {
+  .qr-button {
+    min-height: 48px;
+    padding: 1rem 1.75rem;
+  }
+}
+
 .reset-button {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
+  min-height: 44px;
   background: #ef4444;
   color: white;
   border: none;
