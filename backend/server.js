@@ -29,8 +29,8 @@ if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('supabase') ? { rejectUnauthorized: false } : false
+  connectionString: dbUrl,
+  ssl: dbUrl.includes('supabase') ? { rejectUnauthorized: false } : false
 });
 
 // Test database connection
@@ -46,7 +46,6 @@ pool.on('error', (err) => {
 // Initialize database
 async function initDatabase() {
   try {
-    // First, create table with new schema
     await pool.query(`
       CREATE TABLE IF NOT EXISTS assessments (
         id SERIAL PRIMARY KEY,
@@ -61,22 +60,19 @@ async function initDatabase() {
         UNIQUE(team_name, assessor_name)
       )
     `);
-    
-    // Add new columns if they don't exist (for migration from old schema)
     await pool.query(`
       ALTER TABLE assessments 
       ADD COLUMN IF NOT EXISTS persuading_rating INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS thinking_rating INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS change_rating INTEGER DEFAULT 0
     `);
-    
     console.log('Database initialized successfully');
+    return true;
   } catch (error) {
     console.error('Error initializing database:', error);
+    return false;
   }
 }
-
-initDatabase();
 
 // Submit password (you can change this later)
 // Default passwords: Admin123!, Secure2024!, JudgePass!, Assess2024!
@@ -213,7 +209,16 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured - set DATABASE_URL in .env'}`);
-});
+async function startServer() {
+  const dbOk = await initDatabase();
+  if (!dbOk) {
+    console.error('Cannot start: database initialization failed. Check DATABASE_URL (no spaces, special chars in password must be URL-encoded).');
+    process.exit(1);
+  }
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log('Database: Connected');
+  });
+}
+
+startServer();
