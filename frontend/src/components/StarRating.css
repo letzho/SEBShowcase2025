@@ -1,0 +1,55 @@
+.star-rating {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.star-btn {
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 0.5rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.star-btn:hover {
+  transform: scale(1.15);
+}
+
+.star-btn:active {
+  transform: scale(1.05);
+}
+
+.star-svg {
+  width: 2rem;
+  height: 2rem;
+  transition: all 0.2s ease;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.star-btn:hover .star-svg {
+  transform: scale(1.1);
+}
+
+@media (max-width: 640px) {
+  .star-svg {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  .star-btn {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0.5rem;
+  }
+  .star-rating {
+    gap: 0.35rem;
+  }
+}
+
