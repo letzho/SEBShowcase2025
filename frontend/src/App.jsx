@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import QRScanner from './components/QRScanner';
 import AssessmentForm from './components/AssessmentForm';
 import './App.css';
@@ -9,8 +9,14 @@ function App() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [scannerKey, setScannerKey] = useState(0);
+  const currentProjectRef = useRef('');
+  const scannerJustOpenedRef = useRef(false);
 
-  const handleQRScan = (data) => {
+  useEffect(() => {
+    currentProjectRef.current = projectNumber;
+  }, [projectNumber]);
+
+  const handleQRScan = useCallback((data) => {
     const lines = data.split('\n');
     let projNo = '';
     let projTitle = '';
@@ -21,24 +27,34 @@ function App() {
         projTitle = line.replace('Title:', '').trim();
       }
     });
-    if (projNo) {
-      setProjectNumber(projNo);
-      setProjectTitle(projTitle);
-      setScanned(true);
-      setShowScanner(false);
-    }
-  };
+    if (!projNo) return;
+    // Ignore if same QR scanned within 2s of opening (camera still showing previous)
+    if (projNo === currentProjectRef.current && scannerJustOpenedRef.current) return;
+    scannerJustOpenedRef.current = false;
+    setProjectNumber(projNo);
+    setProjectTitle(projTitle);
+    setScanned(true);
+    setShowScanner(false);
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setProjectNumber('');
     setProjectTitle('');
     setScanned(false);
-  };
+  }, []);
 
-  const openScanner = () => {
+  const openScanner = useCallback(() => {
+    scannerJustOpenedRef.current = true;
     setScannerKey((k) => k + 1);
     setShowScanner(true);
-  };
+    window.setTimeout(() => {
+      scannerJustOpenedRef.current = false;
+    }, 2500);
+  }, []);
+
+  const closeScanner = useCallback(() => {
+    setShowScanner(false);
+  }, []);
 
   return (
     <div className="app">
@@ -59,7 +75,7 @@ function App() {
           <QRScanner 
             key={scannerKey}
             onScan={handleQRScan} 
-            onClose={() => setShowScanner(false)}
+            onClose={closeScanner}
           />
         ) : (
           <>
@@ -90,7 +106,7 @@ function App() {
               <button 
                 type="button"
                 className="qr-button"
-                onClick={openScanner}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); openScanner(); }}
                 aria-label="Scan QR Code"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +118,7 @@ function App() {
                 <button 
                   type="button"
                   className="reset-button"
-                  onClick={handleReset}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleReset(); }}
                   aria-label="Reset"
                 >
                   Reset

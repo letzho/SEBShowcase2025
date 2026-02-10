@@ -8,7 +8,11 @@ function QRScanner({ onScan, onClose }) {
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
 
+  const onScanRef = useRef(onScan);
+  onScanRef.current = onScan;
+
   useEffect(() => {
+    let mounted = true;
     const startScanning = async () => {
       try {
         const html5QrCode = new Html5Qrcode('qr-reader');
@@ -21,14 +25,14 @@ function QRScanner({ onScan, onClose }) {
             qrbox: { width: 250, height: 250 }
           },
           (decodedText) => {
-            onScan(decodedText);
+            if (onScanRef.current) onScanRef.current(decodedText);
             stopScanning();
           },
           (errorMessage) => {
             // Ignore errors, just keep scanning
           }
         );
-        setIsScanning(true);
+        if (mounted) setIsScanning(true);
       } catch (err) {
         console.error('Error starting scanner:', err);
       }
@@ -37,19 +41,20 @@ function QRScanner({ onScan, onClose }) {
     startScanning();
 
     return () => {
+      mounted = false;
       stopScanning();
     };
-  }, [facingMode, onScan]);
+  }, [facingMode]);
 
   const stopScanning = async () => {
-    if (html5QrCodeRef.current && isScanning) {
-      try {
-        await html5QrCodeRef.current.stop();
-        html5QrCodeRef.current.clear();
-        setIsScanning(false);
-      } catch (err) {
+    if (!html5QrCodeRef.current) return;
+    try {
+      await html5QrCodeRef.current.stop();
+      html5QrCodeRef.current.clear();
+      html5QrCodeRef.current = null;
+      setIsScanning(false);
+    } catch (err) {
         console.error('Error stopping scanner:', err);
-      }
     }
   };
 
