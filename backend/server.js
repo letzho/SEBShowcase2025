@@ -20,13 +20,9 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-// Parse connection string to validate
-try {
-  const url = new URL(process.env.DATABASE_URL);
-  if (!url.password && url.username !== 'postgres') {
-    console.warn('WARNING: No password in DATABASE_URL. If your PostgreSQL requires a password, add it to the connection string.');
-  }
-} catch (error) {
+// Basic format check (avoid strict URL parse — passwords with @, #, etc. break it)
+const dbUrl = process.env.DATABASE_URL.trim();
+if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
   console.error('ERROR: Invalid DATABASE_URL format!');
   console.error('Expected format: postgresql://username:password@host:port/database');
   process.exit(1);
