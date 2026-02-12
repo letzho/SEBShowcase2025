@@ -6,15 +6,12 @@ import './AssessmentForm.css';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function AssessmentForm({ teamName, projectNumber, projectName, onReset }) {
-  const [assessorName, setAssessorName] = useState('');
   const [ratings, setRatings] = useState({
     persuading: 0,
     thinking: 0,
     change: 0
   });
   const [submitting, setSubmitting] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [password, setPassword] = useState('');
 
   const showToast = (message, type = 'success') => {
     const container = document.getElementById('toast-container');
@@ -30,23 +27,14 @@ function AssessmentForm({ teamName, projectNumber, projectName, onReset }) {
   };
 
   const handleSubmit = async () => {
-    if (!teamName || !projectNumber || !assessorName) {
-      showToast('Please fill in team name, project number, and assessor name', 'error');
+    if (!teamName || !projectNumber) {
+      showToast('Please fill in project number', 'error');
       return;
     }
 
     const hasRatings = Object.values(ratings).some(v => v > 0);
     if (!hasRatings) {
-      showToast('Please rate at least one criterion', 'error');
-      return;
-    }
-
-    setShowPasswordModal(true);
-  };
-
-  const confirmSubmit = async () => {
-    if (!password) {
-      showToast('Please enter password', 'error');
+      showToast('Please rate at least one category', 'error');
       return;
     }
 
@@ -56,31 +44,22 @@ function AssessmentForm({ teamName, projectNumber, projectName, onReset }) {
         teamName,
         projectNumber,
         projectName,
-        assessorName,
-        ratings,
-        password
+        ratings
       });
 
       if (response.data.success) {
         showToast('Assessment submitted successfully! Scan again for next project.');
         // Clear only form fields; keep project so Scan Again / Reset stay usable
-        setAssessorName('');
         setRatings({
           persuading: 0,
           thinking: 0,
           change: 0
         });
-        setPassword('');
-        setShowPasswordModal(false);
         // Do NOT call onReset() so project fields stay and Scan Again / Reset keep working on mobile
       }
     } catch (error) {
       const message = error.response?.data?.error || 'Failed to submit assessment';
       showToast(message, 'error');
-      if (error.response?.status === 409) {
-        // Duplicate assessment
-        setShowPasswordModal(false);
-      }
     } finally {
       setSubmitting(false);
     }
@@ -148,19 +127,6 @@ function AssessmentForm({ teamName, projectNumber, projectName, onReset }) {
 
   return (
     <>
-      <div className="card card-assessor">
-        <label htmlFor="assessor-name" className="label">Assessor Name *</label>
-        <input
-          type="text"
-          id="assessor-name"
-          value={assessorName}
-          onChange={(e) => setAssessorName(e.target.value)}
-          placeholder="Enter your name"
-          className="input"
-        />
-        <p className="hint">Required to prevent duplicate assessments</p>
-      </div>
-
       <div className="card card-legend">
         <h3 className="legend-title">Rating scale</h3>
         <div className="legend-inline">
@@ -201,40 +167,10 @@ function AssessmentForm({ teamName, projectNumber, projectName, onReset }) {
       <button
         className="submit-button"
         onClick={handleSubmit}
-        disabled={submitting || !teamName || !projectNumber || !assessorName}
+        disabled={submitting || !teamName || !projectNumber}
       >
         {submitting ? 'Submitting...' : 'Submit Assessment'}
       </button>
-
-      {showPasswordModal && (
-        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Enter Password to Submit</h3>
-            <p className="modal-hint">This prevents fraudulent voting</p>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              className="input"
-              autoFocus
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  confirmSubmit();
-                }
-              }}
-            />
-            <div className="modal-buttons">
-              <button className="modal-button cancel" onClick={() => setShowPasswordModal(false)}>
-                Cancel
-              </button>
-              <button className="modal-button confirm" onClick={confirmSubmit} disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

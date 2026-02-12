@@ -46,6 +46,7 @@ pool.on('error', (err) => {
 // Initialize database
 async function initDatabase() {
   try {
+    // Create table without UNIQUE constraint (allow multiple votes per group)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS assessments (
         id SERIAL PRIMARY KEY,
@@ -56,36 +57,34 @@ async function initDatabase() {
         persuading_rating INTEGER DEFAULT 0,
         thinking_rating INTEGER DEFAULT 0,
         change_rating INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(team_name, assessor_name)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Add new columns if they don't exist (for migration from old schema)
     await pool.query(`
       ALTER TABLE assessments 
       ADD COLUMN IF NOT EXISTS persuading_rating INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS thinking_rating INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS change_rating INTEGER DEFAULT 0
     `);
+    
+    // Remove UNIQUE constraint if it exists (for existing databases)
+    try {
+      await pool.query(`
+        ALTER TABLE assessments 
+        DROP CONSTRAINT IF EXISTS assessments_team_name_assessor_name_key
+      `);
+    } catch (err) {
+      // Constraint might not exist or have different name, ignore
+    }
+    
     console.log('Database initialized successfully');
     return true;
   } catch (error) {
     console.error('Error initializing database:', error);
     return false;
   }
-}
-
-// Submit password (you can change this later)
-// Default passwords: Admin123!, Secure2024!, JudgePass!, Assess2024!
-const SUBMIT_PASSWORDS = [
-  'Admin123!',
-  'Secure2024!',
-  'JudgePass!',
-  'Assess2024!'
-];
-
-// Verify password
-function verifyPassword(password) {
-  return SUBMIT_PASSWORDS.includes(password);
 }
 
 // API Routes
@@ -97,38 +96,18 @@ app.post('/api/assessments', async (req, res) => {
       teamName,
       projectNumber,
       projectName,
-      assessorName,
-      ratings,
-      password
+      ratings
     } = req.body;
 
     // Validate required fields
-    if (!teamName || !projectNumber || !assessorName) {
+    if (!teamName || !projectNumber) {
       return res.status(400).json({ 
-        error: 'Team name, project number, and assessor name are required' 
+        error: 'Team name and project number are required' 
       });
     }
 
-    // Verify password
-    if (!password || !verifyPassword(password)) {
-      return res.status(401).json({ 
-        error: 'Invalid password' 
-      });
-    }
-
-    // Check for duplicate assessment
-    const existingResult = await pool.query(
-      'SELECT * FROM assessments WHERE team_name = $1 AND assessor_name = $2',
-      [teamName, assessorName]
-    );
-
-    if (existingResult.rows.length > 0) {
-      return res.status(409).json({ 
-        error: 'You have already assessed this team. Each assessor can only assess a team once.' 
-      });
-    }
-
-    // Insert assessment
+    // Insert assessment (no password check, no duplicate check, no assessor name)
+    // Use timestamp as assessor identifier for tracking (optional)
     const result = await pool.query(
       `INSERT INTO assessments (
         team_name, project_number, project_name, assessor_name,
@@ -139,7 +118,7 @@ app.post('/api/assessments', async (req, res) => {
         teamName,
         projectNumber,
         projectName || '',
-        assessorName,
+        `voter_${Date.now()}`, // Anonymous identifier based on timestamp
         ratings.persuading || 0,
         ratings.thinking || 0,
         ratings.change || 0

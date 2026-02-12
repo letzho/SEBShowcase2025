@@ -1,9 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import QRScanner from './components/QRScanner';
 import AssessmentForm from './components/AssessmentForm';
+import Login from './components/Login';
 import './App.css';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('assessment_logged_in') === 'true';
+  });
   const [projectNumber, setProjectNumber] = useState('');
   const [projectTitle, setProjectTitle] = useState('');
   const [showScanner, setShowScanner] = useState(false);
@@ -55,6 +59,14 @@ function App() {
   const closeScanner = useCallback(() => {
     setShowScanner(false);
   }, []);
+
+  const handleLogin = useCallback(() => {
+    setIsLoggedIn(true);
+  }, []);
+
+  if (!isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="app">
